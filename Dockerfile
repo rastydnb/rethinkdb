@@ -1,6 +1,6 @@
 FROM openjdk:8u111-jre-alpine
 
-MAINTAINER rastydnb
+MAINTAINER itzg
 
 RUN apk -U add bash
 
@@ -29,5 +29,4 @@ COPY java.policy /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/
 COPY start /start
 COPY log4j2.properties $ES_HOME/config/
 RUN  bin/elasticsearch-plugin install x-pack
-
 CMD ["/start"]
