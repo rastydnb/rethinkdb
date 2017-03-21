@@ -1,23 +1,33 @@
-FROM debian:jessie
+FROM openjdk:8u111-jre-alpine
 
-MAINTAINER Luis Ramos <momia191@gmail.com>
+MAINTAINER rastydnb
 
-# Add the RethinkDB repository and public key
-# "RethinkDB Packaging <packaging@rethinkdb.com>" http://download.rethinkdb.com/apt/pubkey.gpg
-RUN apt-key adv --keyserver pgp.mit.edu --recv-keys 1614552E5765227AEC39EFCFA7E00EF33A8F2399
-RUN echo "deb http://download.rethinkdb.com/apt jessie main" > /etc/apt/sources.list.d/rethinkdb.list
+RUN apk -U add bash
 
-ENV RETHINKDB_PACKAGE_VERSION 2.3.5
+ENV ES_VERSION=5.2.2
 
-RUN apt-get update \
-	&& apt-get install -y rethinkdb=$RETHINKDB_PACKAGE_VERSION* \
-	&& apt-get install -y --no-install-recommends bind9-host    \
-	&& rm -rf /var/lib/apt/lists/*
+ADD https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$ES_VERSION.tar.gz /tmp/es.tgz
+RUN cd /usr/share && \
+  tar xf /tmp/es.tgz && \
+  rm /tmp/es.tgz
 
-VOLUME ["/data"]
+EXPOSE 9200 9300
 
-WORKDIR /data
+HEALTHCHECK --timeout=5s CMD wget -q -O - http://$HOSTNAME:9200/_cat/health
 
-CMD ["rethinkdb","--bind","all"]
+ENV ES_HOME=/usr/share/elasticsearch-$ES_VERSION \
+    DEFAULT_ES_USER=elasticsearch \
+    ES_JAVA_OPTS="-Xms1g -Xmx1g"
 
-EXPOSE 28015 29015 8080
+RUN adduser -S -s /bin/sh $DEFAULT_ES_USER
+
+VOLUME ["/data","/conf"]
+
+WORKDIR $ES_HOME
+
+COPY java.policy /usr/lib/jvm/java-1.8-openjdk/jre/lib/security/
+COPY start /start
+COPY log4j2.properties $ES_HOME/config/
+RUN  bin/elasticsearch-plugin install x-pack
+
+CMD ["/start"]
