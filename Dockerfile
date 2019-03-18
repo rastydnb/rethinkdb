@@ -10,7 +10,9 @@ RUN apt-get update \
 	&& apt-get install -y rethinkdb \
 	&& apt-get install -y --no-install-recommends bind9-host    \
 	&& rm -rf /var/lib/apt/lists/*
+RUN mkdir /backup && chmod 777 /backup
 
+VOLUME ["/backup"]
 VOLUME ["/data"]
 
 WORKDIR /data
